@@ -15,7 +15,3 @@ def list_baseboards(path):
         if file.endswith(".dts"):
             dts_files.append(file)
     return dts_files
-
-
-if __name__ == "__main__":
-    

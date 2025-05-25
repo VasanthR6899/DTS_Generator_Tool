@@ -4,6 +4,7 @@ import yaml
 import os
 from jinja2 import Template
 from baseboards import list_folders,list_baseboards
+from sensor_schema import get_vendor_chipsets
 
 # --- CONFIG ---
 KERNEL_PATH = "/home/vasanth/Desktop/personal/linux-at91"
@@ -59,6 +60,7 @@ class DTSApp:
         # Manufacturer and board selection variables
         self.manufacturer_var = tk.StringVar()
         self.baseboard_var = tk.StringVar()
+        self.sensor_var=tk.StringVar()
 
         self.build_ui()
 
@@ -81,7 +83,36 @@ class DTSApp:
         self.baseboard_combo = ttk.Combobox(board_frame, textvariable=self.baseboard_var, state="readonly")
         self.baseboard_combo.pack()
 
-        # --- Pin Entries ---
+        #---Sensor select Dropdown---
+
+        ttk.Label(self.root, text="Select the Sensor name:", font=("Arial", 12, "bold")).pack(pady=10)
+        sensor_frame = ttk.Frame(self.root)
+        sensor_frame.pack()
+
+        self.sensor_combo = ttk.Combobox(sensor_frame, textvariable=self.sensor_var, state="readonly")
+        self.sensor_combo.pack()
+
+        """For complexity purposes, I am adding only the wireless sensors in the mainline kernel in here"""
+        self.populate_sensor_dropdown()
+
+    def populate_sensor_dropdown(self):
+        vendor_chipsets = get_vendor_chipsets()
+
+        sensor_options = []
+        for vendor in sorted(vendor_chipsets):
+            for chip in sorted(vendor_chipsets[vendor]):
+                sensor_options.append(f"{vendor},{chip}")
+
+        self.sensor_combo['values'] = sensor_options
+
+        if sensor_options:
+            self.sensor_combo.current(0)  # Optional: pre-select first item
+
+    
+
+
+
+        """# --- Pin Entries ---
         frame = ttk.Frame(self.root)
         frame.pack(pady=15)
 
@@ -92,10 +123,10 @@ class DTSApp:
         ttk.Entry(frame, textvariable=self.irq_var).grid(row=1, column=1)
 
         ttk.Label(frame, text="Reset Pin:").grid(row=2, column=0, sticky='e')
-        ttk.Entry(frame, textvariable=self.reset_var).grid(row=2, column=1)
+        ttk.Entry(frame, textvariable=self.reset_var).grid(row=2, column=1)"""
 
         # --- Generate Button ---
-        ttk.Button(self.root, text="Generate DTS", command=self.generate_dts).pack(pady=20)
+        #ttk.Button(self.root, text="Generate DTS", command=self.generate_dts).pack(pady=20)
 
         # --- Optional Properties Display ---
         opt_frame = ttk.Frame(self.root)
@@ -111,7 +142,7 @@ class DTSApp:
         baseboards = list_baseboards(baseboard_path)
         self.baseboard_combo['values'] = baseboards
 
-    def generate_dts(self):
+    """def generate_dts(self):
         pins = {
             "cs_pin": self.cs_var.get(),
             "irq_pin": self.irq_var.get(),
@@ -134,9 +165,9 @@ class DTSApp:
             else:
                 messagebox.showerror("Error", "Failed to inject device node into DTS")
         except Exception as e:
-            messagebox.showerror("Error", f"Exception occurred: {e}")
+            messagebox.showerror("Error", f"Exception occurred: {e}")"""
 
-            
+
 if __name__ == "__main__":
     root = tk.Tk()
     app = DTSApp(root)

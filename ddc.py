@@ -3,6 +3,7 @@ from tkinter import ttk, messagebox
 import yaml
 import os
 from jinja2 import Template
+from baseboards import list_folders,list_baseboards
 
 # --- CONFIG ---
 KERNEL_PATH = "/home/vasanth/Desktop/personal/linux-at91"
@@ -39,26 +40,50 @@ def inject_sensor_node(base_dts_path, output_path, rendered_node):
         return False
 
 # --- GUI TOOL ---
+
 class DTSApp:
     def __init__(self, root):
         self.root = root
         root.title("DTS Generator Tool")
-        root.geometry("600x400")
+        root.geometry("600x500")
         root.resizable(False, False)
 
+        # Parse YAML and store properties
+        self.required, self.optional = parse_yaml_bindings(SENSOR_BINDINGS_PATH)
+
+        # Pin variables
         self.cs_var = tk.StringVar()
         self.irq_var = tk.StringVar()
         self.reset_var = tk.StringVar()
 
-        self.required, self.optional = parse_yaml_bindings(SENSOR_BINDINGS_PATH)
+        # Manufacturer and board selection variables
+        self.manufacturer_var = tk.StringVar()
+        self.baseboard_var = tk.StringVar()
 
         self.build_ui()
 
     def build_ui(self):
-        ttk.Label(self.root, text="Required DTS Properties", font=("Arial", 12, "bold")).pack(pady=10)
+        # --- Manufacturer Dropdown ---
+        ttk.Label(self.root, text="Select the baseboard Manufacturer:", font=("Arial", 12, "bold")).pack(pady=10)
+        folder_frame = ttk.Frame(self.root)
+        folder_frame.pack()
 
+        manufacturers = list_folders(os.path.join(KERNEL_PATH, "arch/arm/boot/dts"))
+        self.manufacturer_combo = ttk.Combobox(folder_frame, values=manufacturers, textvariable=self.manufacturer_var, state="readonly")
+        self.manufacturer_combo.pack()
+        self.manufacturer_combo.bind("<<ComboboxSelected>>", self.on_manufacturer_selected)
+
+        # --- Baseboard Dropdown ---
+        ttk.Label(self.root, text="Select the baseboard name:", font=("Arial", 12, "bold")).pack(pady=10)
+        board_frame = ttk.Frame(self.root)
+        board_frame.pack()
+
+        self.baseboard_combo = ttk.Combobox(board_frame, textvariable=self.baseboard_var, state="readonly")
+        self.baseboard_combo.pack()
+
+        # --- Pin Entries ---
         frame = ttk.Frame(self.root)
-        frame.pack(pady=5)
+        frame.pack(pady=15)
 
         ttk.Label(frame, text="CS Pin:").grid(row=0, column=0, sticky='e')
         ttk.Entry(frame, textvariable=self.cs_var).grid(row=0, column=1)
@@ -69,13 +94,22 @@ class DTSApp:
         ttk.Label(frame, text="Reset Pin:").grid(row=2, column=0, sticky='e')
         ttk.Entry(frame, textvariable=self.reset_var).grid(row=2, column=1)
 
+        # --- Generate Button ---
         ttk.Button(self.root, text="Generate DTS", command=self.generate_dts).pack(pady=20)
 
+        # --- Optional Properties Display ---
         opt_frame = ttk.Frame(self.root)
         opt_frame.pack(pady=10)
-        ttk.Label(opt_frame, text="Optional Properties:").pack()
+        ttk.Label(opt_frame, text="Optional Properties:", font=("Arial", 10, "bold")).pack()
+
         for prop in self.optional:
             ttk.Label(opt_frame, text=prop).pack()
+
+    def on_manufacturer_selected(self, event):
+        manufacturer = self.manufacturer_var.get()
+        baseboard_path = os.path.join(KERNEL_PATH, "arch/arm/boot/dts", manufacturer)
+        baseboards = list_baseboards(baseboard_path)
+        self.baseboard_combo['values'] = baseboards
 
     def generate_dts(self):
         pins = {
@@ -83,16 +117,26 @@ class DTSApp:
             "irq_pin": self.irq_var.get(),
             "reset_pin": self.reset_var.get(),
         }
-        with open(TEMPLATE_PATH, 'r') as f:
-            template = Template(f.read())
-        rendered = template.render(**pins)
 
-        success = inject_sensor_node(BASEBOARD_DTS_PATH, OUTPUT_DTS_PATH, rendered)
-        if success:
-            messagebox.showinfo("Success", f"DTS generated at {OUTPUT_DTS_PATH}")
-        else:
-            messagebox.showerror("Error", "Failed to inject device node into DTS")
+        # You can update this if you want to dynamically use selected baseboard file
+        selected_board = self.baseboard_var.get()
+        full_baseboard_path = os.path.join(KERNEL_PATH, "arch/arm/boot/dts", self.manufacturer_var.get(), selected_board)
 
+        try:
+            with open(TEMPLATE_PATH, 'r') as f:
+                template = Template(f.read())
+
+            rendered = template.render(**pins)
+
+            success = inject_sensor_node(full_baseboard_path, OUTPUT_DTS_PATH, rendered)
+            if success:
+                messagebox.showinfo("Success", f"DTS generated at {OUTPUT_DTS_PATH}")
+            else:
+                messagebox.showerror("Error", "Failed to inject device node into DTS")
+        except Exception as e:
+            messagebox.showerror("Error", f"Exception occurred: {e}")
+
+            
 if __name__ == "__main__":
     root = tk.Tk()
     app = DTSApp(root)

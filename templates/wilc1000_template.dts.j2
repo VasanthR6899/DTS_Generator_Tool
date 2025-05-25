@@ -1,0 +1,9 @@
+&wilc {
+    compatible = "microchip,wilc1000";
+    spi-max-frequency = <10000000>;
+    reg = <0>;
+    irq-gpios = <&pio {{ irq_pin }} 0>;
+    reset-gpios = <&pio {{ reset_pin }} 0>;
+    status = "okay";
+};
+

@@ -1,0 +1,17 @@
+{
+  "name": "SAMA5D27 Xplained",
+  "description": "Microchip SAMA5D27 MPU-based evaluation kit",
+  "supported_interfaces": {
+    "spi": {
+      "cs": "PA10",
+      "clk": "PA11",
+      "mosi": "PA12",
+      "miso": "PA13"
+    },
+    "gpio": {
+      "irq": "PB01",
+      "reset": "PB02"
+    }
+  }
+}
+

@@ -1,0 +1,8 @@
+{
+  "default_pins": {
+    "cs": "PA10",
+    "irq": "PA11",
+    "reset": "PA12"
+  }
+}
+
